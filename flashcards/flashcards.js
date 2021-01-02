@@ -33,6 +33,12 @@ function goShow() {
   document.getElementById('next').style.display = 'block';
 }
 
+function goPrev() {
+  at -= 2;
+  if (at < 0) { at = 0; }
+  goNext();
+}
+
 ready(function() {
   grist.ready();
   grist.onRecords(function(records) {
@@ -42,13 +48,18 @@ ready(function() {
   });
   document.getElementById('show').addEventListener('click', goShow);
   document.getElementById('next').addEventListener('click', goNext);
-  document.addEventListener("keypress", function(event) {
-    if (event.key === " ") {
+  document.addEventListener("keydown", function(event) {
+    if (event.key === " " || event.key === "Enter" || event.key === "Right" || event.key === "ArrowRight") {
       if (document.getElementById('show').style.display !== 'none') {
         goShow();
       } else {
         goNext();
       }
+      event.preventDefault();
+    }
+    if (event.key === "Left" || event.key === "ArrowLeft") {
+      goPrev();
+      event.preventDefault();
     }
     return false;
   });
