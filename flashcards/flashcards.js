@@ -19,6 +19,7 @@ function goNext() {
   if (question.length === 0) { return; }
   at = at % questions.length;
   const qa = questions[at];
+  store.set('flashcards-at', at);
   at++;
   document.getElementById('question').innerHTML = qa.Question;
   document.getElementById('answers').style.display = 'none';
@@ -42,7 +43,7 @@ function goPrev() {
 ready(function() {
   grist.ready();
   grist.onRecords(function(records) {
-    at = 0;
+    at = parseInt(store.get('flashcards-at'), 10) || 0;
     questions = records;
     goNext();
   });
