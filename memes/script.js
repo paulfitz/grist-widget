@@ -79,8 +79,21 @@ ready(function() {
   const cvs = document.getElementById('show');
 
   grist.ready();
-  grist.onRecord(function(record) {
+  let lastRecord = null;
+  function update(record) {
+    if (record) {
+      lastRecord = record;
+    }
+    record = lastRecord;
+    if (!record) { return; }
     setup(cvs.getContext('2d'), cvs, record.Image, record.Texts);
+  }
+  grist.onRecord(function(record) {
+    update(record);
   });
+
+  window.addEventListener('resize', function(event) {
+    update();
+  }, true);
 });
 
