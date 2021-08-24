@@ -7,6 +7,14 @@ function scaleBasedOnWindow(elm, scale=1, fit=false){
     }
 }
 
+
+function toMultiLine(txt){
+  txt = txt.replace(/\n\r/g, '\n');
+  txt = txt.replace(/\r\n/g, '\n');
+  return txt.split("\n");
+}
+
+
 function setup(ctx, cvs, background, texts) {
 
   const img1 = new Image();
@@ -19,23 +27,40 @@ function setup(ctx, cvs, background, texts) {
     const fontScale = cvs.width / 10.0;
     
     for (const text of texts) {
-      const fontSetting = "bold " + Math.round(fontScale * text.Size / 100.0) + "px Impact";
+      const px = Math.round(fontScale * text.Size / 100.0);
+      const fontSetting = "bold " + px + "px Impact";
       ctx.font = fontSetting;
       ctx.textBaseline = "middle";
       ctx.textAlign = "center";
-      ctx.fillStyle = "white";
 
       const input = text.Text;
-      const box = ctx.measureText(input);
-      const textWidth = box.width;
-      const textHeight = box.actualBoundingBoxAscent + box.actualBoundingBoxDescent;
-
-
+      const inputs = toMultiLine(input);
+      const pad = Math.round(px/4);
+      let htotal = -pad;
+      const sizes = inputs.map(input => {
+        const box = ctx.measureText(input);
+        const w = box.width;
+        const h = box.actualBoundingBoxAscent + box.actualBoundingBoxDescent;
+        htotal += h + pad;
+        return { w, h };
+      });
+      const nlines = inputs.length;
       const x0 = Math.round((img1.width) / 100.0 * text.Right);
       const y0 = Math.round((img1.height) / 100.0 * (100 - text.Up));
-      ctx.fillText(input, x0, y0, textWidth + 50);
-      ctx.fillStyle = "black";
-      ctx.strokeText(input, x0, y0, textWidth + 50);
+      if (nlines >= 1) {
+        let dy = - (htotal - sizes[0].h / 2 - sizes[nlines-1].h / 2) / 2;
+        for (let i = 0; i < nlines; i++) {
+          const line = inputs[i];
+          const size = sizes[i];
+          ctx.fillStyle = "white";
+          ctx.fillText(line, x0, y0+dy, size.w + 50);
+          ctx.fillStyle = "black";
+          ctx.strokeText(line, x0, y0+dy, size.w + 50);
+          if (i+1 < nlines) {
+            dy += size.h/2 + pad + sizes[i+1].h/2;
+          }
+        }
+      }
     }
   };
 
