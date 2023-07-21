@@ -30,6 +30,6 @@ jobs:
       run: |
           git config user.name "Paul's Grist Bot"
           git config user.email "<paul+bot@getgrist.com>"
-          git add manifest.json
+          git add -f manifest.json
           git commit -m "add manifest.json" -a
           git push --set-upstream origin HEAD:release -f
