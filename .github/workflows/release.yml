@@ -24,7 +24,7 @@ jobs:
         title: "Automatic release"
         files: manifest.json
 
-    # Would like a version of manifest.json that is usable from browser.
+    # Would like a version of manifest.json that is usable from browsers.
     # jsdelivr offers this, but only from branches, not releases.
     - name: Make a release branch that includes manifest.json
       run: |
