@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>SQL Query</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <script src="script.js"></script>
+  </head>
+  <body>
+    <form <form onsubmit="event.preventDefault(); return false;">
+      SQL Query: <button id="run">Run</button><br />
+      <div id="texty">
+        <textarea id="query"></textarea>
+      </div>
+    </form>
+
+    <table>
+      <thead>
+        <tr id="table-headers">
+        </tr>
+      </thead>
+      <tbody id="table-body">
+      </tbody>
+    </table>
+  </body>
+</html>
