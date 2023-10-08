@@ -12,6 +12,9 @@ async function run(sql) {
     }),
   });
   const result2 = await result.json();
+  if (result2.error) {
+    throw new Error(result2.error);
+  }
   console.log(result2);
   makeTable(result2.records);
 }
@@ -51,15 +54,27 @@ function makeTable(data) {
 
 const settings = {};
 
+async function runEvent() {
+  const sql = document.getElementById('query').value;
+  if (settings.sql !== sql) {
+    await grist.widgetApi.setOption('sql', sql);
+    settings.sql = sql;
+  }
+  runInBackground(sql);
+}
+
 function init() {
-  document.getElementById('run').addEventListener('click', async function() {
-    const sql = document.getElementById('query').value;
-    if (settings.sql !== sql) {
-      await grist.widgetApi.setOption('sql', sql);
-      settings.sql = sql;
+  document.getElementById('run').addEventListener('click', runEvent);
+  document.getElementById('texty').addEventListener('keydown', async (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      // Ctrl + Enter is pressed
+      e.preventDefault();
+      await runEvent();
     }
-    runInBackground(sql);
   });
+  const isMacOS = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const tip = isMacOS ? "⌘-Enter" : "Ctrl-Enter";
+  document.getElementById('run').innerText += " (" + tip + ")";
 }
 
 grist.ready({
@@ -77,7 +92,14 @@ grist.onOptions((options) => {
 });
 
 function runInBackground(sql) {
-  run(sql).catch(e => console.error(e));
+  run(sql).catch(e => {
+    console.error(e);
+    makeTable([{
+      fields: {
+        error: String(e),
+      }
+    }]);
+  });
 }
 
 function ready(fn) {
