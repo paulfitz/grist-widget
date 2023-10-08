@@ -1,0 +1,13 @@
+{
+  "name": "@gristlabs/widget-sql",
+  "description": "A way to run SQL queries on your document.",
+  "homePage": "https://github.com/gristlabs/grist-widget",
+  "version": "0.0.1",
+  "grist": {
+    "name": "SQL Queries",
+    "url": "https://gristlabs.github.io/grist-widget/sql",
+    "widgetId": "@gristlabs/widget-sql",
+    "published": true,
+    "accessLevel": "read table"
+  }
+}
