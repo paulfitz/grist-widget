@@ -49,17 +49,36 @@ function makeTable(data) {
 }
 
 
+const settings = {};
 
 function init() {
   document.getElementById('run').addEventListener('click', async function() {
     const sql = document.getElementById('query').value;
-    await run(sql);
+    if (settings.sql !== sql) {
+      await grist.widgetApi.setOption('sql', sql);
+      settings.sql = sql;
+    }
+    runInBackground(sql);
   });
 }
 
 grist.ready({
   requiredAccess: 'full'
 });
+
+grist.onOptions((options) => {
+  console.log("Options", {options});
+  const sql = options?.sql;
+  if (sql) {
+    settings.sql = sql;
+    document.getElementById('query').value = sql;
+    runInBackground(sql);
+  }
+});
+
+function runInBackground(sql) {
+  run(sql).catch(e => console.error(e));
+}
 
 function ready(fn) {
   if (document.readyState !== 'loading') {
