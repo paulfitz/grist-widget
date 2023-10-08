@@ -1,8 +1,10 @@
-async function run(sql) {
+/**
+ * Run a query.
+ */
+async function query(sql) {
   const tokenInfo = await grist.docApi.getAccessToken({readOnly: true});
-  console.log(tokenInfo);
   const url = tokenInfo.baseUrl + `/sql?auth=${tokenInfo.token}`;
-  const result = await fetch(url, {
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -11,14 +13,23 @@ async function run(sql) {
       sql
     }),
   });
-  const result2 = await result.json();
-  if (result2.error) {
-    throw new Error(result2.error);
-  }
-  console.log(result2);
-  makeTable(result2.records);
+  return response.json();
 }
 
+/**
+ * Show the results of a query.
+ */
+function renderResponse(result) {
+  if (result.error) {
+    throw new Error(result.error);
+  }
+  makeTable(result.records);
+}
+
+/**
+ * Update table to show the provided data.
+ * Expect data to be records from /sql endpoint.
+ */
 function makeTable(data) {
   const tableHeadersRow = document.getElementById('table-headers');
   const tableBody = document.getElementById('table-body');
@@ -40,68 +51,81 @@ function makeTable(data) {
   data.forEach(item => {
     const fields = item.fields;
     const row = document.createElement('tr');
-    
     headers.forEach(header => {
       const cell = document.createElement('td');
       cell.textContent = fields[header];
       row.appendChild(cell);
     });
-    
     tableBody.appendChild(row);
   });
 }
 
-
-const settings = {};
-
-async function runEvent() {
+/**
+ * Handle the "run" button or keyboard shortcut.
+ * Take SQL query from UI. Update settings if needed.
+ * Run query and render.
+ * Errors are rendered as mini-tables (blush).
+ */
+async function run(settings) {
   const sql = document.getElementById('query').value;
   if (settings.sql !== sql) {
     await grist.widgetApi.setOption('sql', sql);
     settings.sql = sql;
   }
-  runInBackground(sql);
-}
-
-function init() {
-  document.getElementById('run').addEventListener('click', runEvent);
-  document.getElementById('texty').addEventListener('keydown', async (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      // Ctrl + Enter is pressed
-      e.preventDefault();
-      await runEvent();
-    }
-  });
-  const isMacOS = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  const tip = isMacOS ? "⌘-Enter" : "Ctrl-Enter";
-  document.getElementById('run').innerText += " (" + tip + ")";
-}
-
-grist.ready({
-  requiredAccess: 'full'
-});
-
-grist.onOptions((options) => {
-  console.log("Options", {options});
-  const sql = options?.sql;
-  if (sql) {
-    settings.sql = sql;
-    document.getElementById('query').value = sql;
-    runInBackground(sql);
-  }
-});
-
-function runInBackground(sql) {
-  run(sql).catch(e => {
+  try {
+    const result = await query(sql);
+    renderResponse(result);
+  } catch (e) {
     console.error(e);
     makeTable([{
       fields: {
         error: String(e),
       }
     }]);
+  }
+}
+
+/**
+ * Initialize the page.
+ */
+function init() {
+  const settings = {};
+  const doSql = () => run(settings);
+
+  // Add handler for button.
+  document.getElementById('run').addEventListener('click', doSql);
+
+  // Add keyboard shortcut.
+  document.getElementById('textarea-container').addEventListener('keydown', async (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      // Ctrl + Enter is pressed
+      e.preventDefault();
+      await doSql();
+    }
+  });
+
+  // Add tip for the keyboard shortcut.
+  const isMacOS = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const tip = isMacOS ? "⌘-Enter" : "Ctrl-Enter";
+  document.getElementById('run').innerText += " (" + tip + ")";
+
+  // Set up Grist.
+  grist.ready({
+    requiredAccess: 'full'
+  });
+  grist.onOptions(async (options) => {
+    const sql = options?.sql;
+    if (sql) {
+      settings.sql = sql;
+      document.getElementById('query').value = sql;
+      await doSql();
+    }
   });
 }
 
+/**
+ * Call init once page is loaded.
+ */
 function ready(fn) {
   if (document.readyState !== 'loading') {
     fn();
@@ -109,5 +133,4 @@ function ready(fn) {
     document.addEventListener('DOMContentLoaded', fn);
   }
 }
-
 ready(init);

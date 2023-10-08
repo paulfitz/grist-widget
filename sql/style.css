@@ -3,7 +3,7 @@ textarea {
   min-height: 100px;
 }
 
-#texty {
+#textarea-container {
   margin-top: 5px;
   margin-bottom: 5px;
   width: 80%;
@@ -12,9 +12,6 @@ textarea {
 form {
   display: block;
 }
-
-
-
 
 table {
   border-collapse: collapse;
