@@ -1,0 +1,16 @@
+{
+  "name": "@gristlabs/widget-gantt",
+  "description": "Yes we Gantt.",
+  "homePage": "https://github.com/gristlabs/grist-widget",
+  "version": "0.0.1",
+  "grist": [
+    {
+      "name": "Gantt",
+      "url": "https://gristlabs.github.io/grist-widget/gantt/index.html",
+      "widgetId": "@gristlabs/widget-gantt#gantt",
+      "published": true,
+      "accessLevel": "read table",
+      "renderAfterReady": true
+    }
+  ]
+}
