@@ -29,19 +29,39 @@ function renderDigraph(state) {
   const txts = [];
   txts.push('digraph G {');
   txts.push('rankdir=LR;');
+  txts.push('newrank=true;');
   const labelToId = {};
   const ranks = {};
+  const groups = {};
+  const clusters = {};
   for (const rec of state.records) {
-    // Lame encoding
-    const label = JSON.stringify(String(rec.Name));
-    txts.push(getId(rec) + ` [shape=box label=${label}];`);
-    labelToId[String(rec.Name)] = getId(rec);
     if (rec.Rank) {
       if (!ranks[rec.Rank]) {
         ranks[rec.Rank] = [];
       }
       ranks[rec.Rank].push(getId(rec));
     }
+    if (rec.Group) {
+      if (!groups[rec.Group]) {
+        groups[rec.Group] = [];
+      }
+      groups[rec.Group].push(getId(rec));
+    }
+    if (rec.Cluster) {
+      if (!clusters[rec.Cluster]) {
+        clusters[rec.Cluster] = [];
+      }
+      clusters[rec.Cluster].push(getId(rec));
+    }
+  }
+  for (const rec of state.records) {
+    // Lame encoding
+    const label = JSON.stringify(String(rec.Name));
+    const group = rec.Group ? JSON.stringify(String(rec.Group)) : '';
+    txts.push(getId(rec) + ` [shape=box label=${label}` +
+              (group ? ` group=${group}` : '') +
+             '];');
+    labelToId[String(rec.Name)] = getId(rec);
   }
   for (const rec of state.records) {
     const reqs = rec.Requirements;
@@ -54,10 +74,21 @@ function renderDigraph(state) {
   }
   for (const rank of Object.keys(ranks)) {
     const lst = ranks[rank].join('; ');
-    txts.push(`{ rank=same; ${lst}; }`);
+    const rankType = ['source', 'sink'].includes(rank) ? rank : 'same';
+    txts.push(`{ rank=${rankType}; ${lst}; }`);
+  }
+  let i = 0;
+  for (const cluster of Object.keys(clusters)) {
+    const lst = clusters[cluster].join('; ');
+    const label = JSON.stringify(cluster);
+    txts.push(`subgraph cluster_${i} { ${lst};` +
+              (cluster.startsWith('#') ? '' : ` label=${label}`) +
+              ' }');
+    i++;
   }
   txts.push('}');
   const txt = txts.join('\n');
+  console.log(txt);
   Viz.instance().then(viz => {
     const elem = document.getElementById('gantt');
     elem.textContent = '';
@@ -77,6 +108,14 @@ grist.ready({
     "Requirements",
     {
       name: "Rank",
+      optional: true
+    },
+    {
+      name: "Group",
+      optional: true
+    },
+    {
+      name: "Cluster",
       optional: true
     }
   ],
