@@ -1,0 +1,101 @@
+<html>
+  <head>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <script src="./script.js"></script>
+    <style>
+      html,
+      body,
+      #pdfViewer, canvas {
+      width: 100%;
+      height: 100vh;
+      padding: 0;
+      margin: 0;
+      background: #fff;
+   }
+   canvas {
+     object-fit: contain;
+   }
+       .button {
+            font-size: 16px; /* Smaller font size */
+            padding: 6px 12px; /* Smaller padding */
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+      transition: background-color 0.3s;
+      height: 50px;
+        }
+
+        .print {
+            background-color: #4CAF50; /* Green */
+        }
+
+        .print:hover {
+            background-color: #45a049;
+        }
+
+        .checkbox-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .checkbox-label {
+            margin-left: 10px;
+            margin-right: 20px;
+            font-size: 12px;
+            background:
+        }
+
+      .checkbox {
+      color: black;
+      width: 20px;
+      height: 20px;
+      }
+      #checkboxes {
+      color: black;
+      display: inline-block;
+      vertical-align: middle;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import pdfjsDist from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/+esm';
+      fly(pdfjsLib);
+    </script>
+    <script src="https://cdn.jsdelivr.net/gh/phihag/pdfform.js@dist/dist/pdfform.minipdf.dist.js"></script>
+    <!--- script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script --->
+    <script src="./pdf-lib.js"></script>
+    <script src="./fields.js"></script>
+
+    <div>
+    <!-- Print Button -->
+    <button id='print-button' class="button print">PRINT</button>
+
+    <!-- Checkboxes -->
+    <div id="checkboxes">
+        <label class="checkbox-label">
+            <input type="checkbox" class="checkbox" id="background-show" checked> SHOW BACKGROUND
+        </label>
+        <br />
+        <!---
+        <label class="checkbox-label">
+            <input type="checkbox" class="checkbox" id="background-print"> PRINT BACKGROUND
+        </label>
+        <br />
+        --->
+        <label class="checkbox-label">
+            <input type="checkbox" class="checkbox" id="labels"> LABELS
+    </div>
+    </div>
+    </div>
+    
+    <div id="pdfViewer"></div>
+
+    <script>
+    </script>
+  </body>
+</html>

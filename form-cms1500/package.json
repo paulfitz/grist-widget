@@ -1,0 +1,14 @@
+{
+  "name": "@gristlabs/form-cms1500",
+  "description": "A widget to fill out form CMS 1500.",
+  "homePage": "https://github.com/gristlabs/grist-widget",
+  "version": "0.0.1",
+  "grist": {
+    "name": "Form CMS 1500",
+    "url": "https://gristlabs.github.io/grist-widget/form-cms1500",
+    "widgetId": "@gristlabs/form-cms1500",
+    "published": true,
+    "accessLevel": "read table",
+    "renderAfterReady": true
+  }
+}
