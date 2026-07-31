@@ -83,8 +83,9 @@
         padding: 0.2em 0.4em;
       }
       button.link:hover { background: none; text-decoration: underline; }
-      button:disabled { opacity: 0.45; cursor: default; }
+      button:disabled { opacity: 0.4; cursor: default; }
       button:disabled:hover { background-color: var(--button-color); }
+      button.gray:disabled:hover { background-color: var(--button-gray); }
 
       input, select {
         background: var(--input-bg-color);
@@ -623,14 +624,19 @@
                 `).join("")}
               </div>` : ""}
             <div class="seats">
-              <div class="lbl">
-                ${seats.length || hasRounds ? "starting over?" : ""}
-              </div>
-              ${hasRounds ? `<button class="small gray"
-                data-act="reset">new game</button>` : ""}
-              ${seats.length ? `<button class="small gray"
-                data-act="clear">empty table</button>` : ""}
+              <div class="lbl">starting over?</div>
+              <button class="small gray" data-act="reset"
+                ${hasRounds ? "" : "disabled"}
+                title="Clear the rounds, clues and score. Players keep their seats."
+                >new game</button>
+              <button class="small gray" data-act="clear"
+                ${seats.length ? "" : "disabled"}
+                title="Clear everything, including the players."
+                >empty table</button>
               <button class="small gray" data-act="rules">rules</button>
+              ${seats.length || hasRounds ? "" :
+                `<div class="lbl" style="margin-top:0.4em">nothing to clear -
+                  this table is empty and ready for a new game.</div>`}
             </div>
             ${showRules ? renderRules() : ""}
             <div class="note">
