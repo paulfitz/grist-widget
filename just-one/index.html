@@ -1,0 +1,984 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>just one</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <style>
+      html {
+        --bg-color: #fff;
+        --panel-color: #f7f7f7;
+        --input-bg-color: #f0f0f0;
+        --text-color: #212121;
+        --text-faint: #999;
+        --text-hidden: #aaa;
+        --text-correct: #388e3c;
+        --text-wrong: #d32f2f;
+        --button-color: #26a69a;
+        --button-highlight: #2bbbad;
+        --button-gray: #888;
+        --button-gray-highlight: #999;
+        --rule-color: #e4e4e4;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        html {
+          --bg-color: #1a1a1a;
+          --panel-color: #232323;
+          --input-bg-color: #2c2c2c;
+          --text-color: #f0f0f0;
+          --text-faint: #888;
+          --text-hidden: #777;
+          --text-correct: #57bf5b;
+          --text-wrong: #ef5350;
+          --button-color: #26a69a;
+          --button-highlight: #2bbbad;
+          --button-gray: #666;
+          --button-gray-highlight: #777;
+          --rule-color: #333;
+        }
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: "Lato", "Lucida Grande", "Lucida Sans Unicode",
+          "Lucida Sans", Verdana, sans-serif;
+        font-size: 17px;
+        margin: 0;
+        padding: 0;
+      }
+
+      @media all and (max-width: 560px) { body { font-size: 15px; } }
+      @media all and (max-width: 400px) { body { font-size: 14px; } }
+
+      .wrap {
+        margin: 0 auto;
+        max-width: 42em;
+        padding: 0.75em 1em 3em;
+      }
+
+      button {
+        background-color: var(--button-color);
+        border: none;
+        border-radius: 3px;
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        margin: 0 0.25em 0.25em 0;
+        padding: 0.4em 1em;
+        transition: 0.2s background-color;
+        vertical-align: middle;
+      }
+      button:hover { background-color: var(--button-highlight); }
+      button.small { font-size: 0.8em; padding: 0.2em 0.7em; }
+      button.gray { background-color: var(--button-gray); }
+      button.gray:hover { background-color: var(--button-gray-highlight); }
+      button.link {
+        background: none;
+        color: var(--button-color);
+        padding: 0.2em 0.4em;
+      }
+      button.link:hover { background: none; text-decoration: underline; }
+      button:disabled { opacity: 0.45; cursor: default; }
+      button:disabled:hover { background-color: var(--button-color); }
+
+      input, select {
+        background: var(--input-bg-color);
+        border: none;
+        border-bottom: 2px solid var(--input-bg-color);
+        border-radius: 0;
+        color: var(--text-color);
+        font: inherit;
+        margin: 0 0.25em 0 0;
+        padding: 0.4em;
+        transition: 0.2s border-bottom;
+        vertical-align: middle;
+      }
+      input { width: 11em; }
+      input:focus, select:focus {
+        border-bottom: 2px solid var(--button-highlight);
+        outline: none;
+      }
+
+      .correct { color: var(--text-correct); }
+      .wrong { color: var(--text-wrong); }
+
+      /* nav */
+      .nav {
+        align-items: baseline;
+        border-bottom: 1px solid var(--rule-color);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4em;
+        margin-bottom: 0.9em;
+        padding-bottom: 0.5em;
+      }
+      .nav h1 {
+        font-size: 1.15em;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+      }
+      .nav .room { color: var(--text-faint); flex: 1; font-size: 0.85em; }
+
+      /* status + action */
+      .status { font-size: 1.15em; margin: 0.6em 0; }
+      .status .word { border-bottom: 2px solid var(--button-color); }
+      .action {
+        background: var(--panel-color);
+        border-radius: 4px;
+        margin: 0.6em 0;
+        padding: 0.9em 1em;
+      }
+      .action .msg { margin-bottom: 0.6em; }
+      .action .msg:last-child { margin-bottom: 0; }
+      .subaction {
+        align-items: center;
+        color: var(--text-faint);
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.85em;
+        gap: 0.6em;
+        margin: 0.5em 0 1.2em;
+      }
+      .subaction .spacer { flex: 1; }
+
+      /* players */
+      .round-status {
+        border-top: 1px solid var(--rule-color);
+        color: var(--text-faint);
+        font-size: 0.85em;
+        margin-top: 1.2em;
+        padding-top: 0.6em;
+      }
+      .round-status.old { opacity: 0.65; }
+      table.players { border-collapse: collapse; margin: 0.4em 0; width: 100%; }
+      table.players td {
+        border-bottom: 1px solid var(--rule-color);
+        padding: 0.35em 0.2em;
+        vertical-align: middle;
+      }
+      table.players td.who { white-space: nowrap; width: 40%; }
+      table.players td.clue { text-align: right; }
+      .name.me { font-weight: 700; }
+      .clue-text.guessing { color: var(--button-color); font-style: italic; }
+      .clue-text.pending { color: var(--text-faint); font-style: italic; }
+      .clue-text.none { color: var(--text-faint); font-style: italic; }
+      .clue-text.struck {
+        color: var(--text-hidden);
+        text-decoration: line-through;
+      }
+      .clue-text.masked { color: var(--text-hidden); font-style: italic; }
+
+      /* rules */
+      .rules {
+        background: var(--panel-color);
+        border-radius: 4px;
+        font-size: 0.9em;
+        margin: 0.8em 0;
+        padding: 1em 1.2em;
+      }
+      .rules ol { padding-left: 1.2em; }
+      .rules li { margin-bottom: 0.7em; }
+      .rules .exp { color: var(--text-faint); font-size: 0.9em; margin: 0.2em 0; }
+
+      /* splash */
+      .splash { padding-top: 1em; }
+      .splash h1 { font-size: 1.6em; margin: 0 0 0.2em; }
+      .splash .tag { color: var(--text-faint); margin-bottom: 1.4em; }
+      .splash .seats { margin-top: 1.2em; }
+      .splash .seats .lbl {
+        color: var(--text-faint);
+        font-size: 0.85em;
+        margin-bottom: 0.3em;
+      }
+
+      .note {
+        color: var(--text-faint);
+        font-size: 0.8em;
+        line-height: 1.45;
+        margin-top: 2em;
+      }
+      .err {
+        background: var(--text-wrong);
+        border-radius: 3px;
+        color: #fff;
+        margin: 0.6em 0;
+        padding: 0.6em 0.8em;
+      }
+      .settings { font-size: 0.85em; margin: 0.6em 0; }
+      .settings label { color: var(--text-faint); margin-right: 0.4em; }
+      .settings select { font-size: 1em; width: auto; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap" id="app"></div>
+
+    <script>
+      "use strict";
+
+      // ---------------------------------------------------------------- state
+
+      const TABLES = ["Game", "Players", "Rounds", "Clues", "Words"];
+
+      let db = {};            // tableId -> [{id, ...cols}]
+      let me = null;          // {id, name} once seated, null while spectating
+      let joined = false;     // false until the splash screen is dismissed
+      let docKey = "default";
+      let showRules = false;
+      let draft = "";         // text currently typed into the clue/guess box
+      let error = "";
+      let busy = false;       // guards against double-clicking a phase change
+
+      // -------------------------------------------------------------- helpers
+
+      const esc = (s) =>
+        String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+        }[c]));
+
+      // Mirrors the Clues.Stem formula in the document, so the browser and the
+      // data engine agree on when two clues collide.
+      function stem(s) {
+        let w = String(s || "").trim().toLowerCase().replace(/[^a-z]/g, "");
+        if (w.length < 4) return w;
+        const rules = [["ies", "y"], ["sses", "ss"], ["ing", ""], ["ed", ""],
+                       ["es", ""], ["s", ""]];
+        for (const [suf, rep] of rules) {
+          if (w.endsWith(suf) && w.length - suf.length >= 3) {
+            w = w.slice(0, w.length - suf.length) + rep;
+            break;
+          }
+        }
+        const last = w[w.length - 1];
+        if (w.length > 3 && last === w[w.length - 2] && !"aeiou".includes(last)) {
+          w = w.slice(0, -1);
+        }
+        return w;
+      }
+
+      const equivalent = (a, b) => Boolean(a) && Boolean(b) && stem(a) === stem(b);
+
+      const game = () => (db.Game || [])[0] || null;
+      const players = () =>
+        (db.Players || []).slice().sort((a, b) => (a.Seat || 0) - (b.Seat || 0));
+      const rounds = () =>
+        (db.Rounds || []).slice().sort((a, b) => (a.Num || 0) - (b.Num || 0));
+      const player = (id) => (db.Players || []).find((p) => p.id === id) || null;
+      const playerName = (id) => (player(id) || {}).Name || "someone";
+      const cluesFor = (roundId) =>
+        (db.Clues || []).filter((c) => c.Round === roundId);
+
+      function currentRound() {
+        const g = game();
+        if (!g || !g.CurrentRound) return null;
+        return (db.Rounds || []).find((r) => r.id === g.CurrentRound) || null;
+      }
+
+      function phase() {
+        const r = currentRound();
+        return r ? r.Phase || "clue" : "wait";
+      }
+
+      const amGuessing = () => {
+        const r = currentRound();
+        return Boolean(r && me && r.Guesser === me.id);
+      };
+
+      const spectating = () => me === null;
+
+      // A clue counts as submitted once it is non-empty. The original sends a
+      // single space when you submit a blank clue, which reads as "submitted,
+      // but deliberately blank" - that is preserved here.
+      const submitted = (c) => (c.Clue || "") !== "";
+
+      // ------------------------------------------------------------ doc access
+
+      function rowsFromColumns(cols) {
+        const ids = cols.id || [];
+        const keys = Object.keys(cols).filter((k) => k !== "id");
+        return ids.map((id, i) => {
+          const row = { id };
+          for (const k of keys) row[k] = cols[k][i];
+          return row;
+        });
+      }
+
+      let fingerprint = null;
+
+      async function refresh() {
+        const next = {};
+        for (const t of TABLES) {
+          next[t] = rowsFromColumns(await grist.docApi.fetchTable(t));
+        }
+        const fp = JSON.stringify(next);
+        db = next;
+        // A seat can vanish underneath us if someone kicks us.
+        let forced = false;
+        if (me && !player(me.id)) {
+          me = null;
+          joined = false;
+          localStorage.removeItem("justone:" + docKey);
+          forced = true;
+        }
+        // Re-rendering replaces the DOM, which costs you your cursor position.
+        // The poll runs every few seconds, so only redraw on a real change.
+        if (!forced && fp === fingerprint) return;
+        fingerprint = fp;
+        render();
+      }
+
+      async function apply(actions) {
+        if (!actions.length) return null;
+        const res = await grist.docApi.applyUserActions(actions);
+        await refresh();
+        return res;
+      }
+
+      // Wraps an action so a slow round-trip cannot be triggered twice, and so
+      // a failure surfaces in the UI instead of only in the console.
+      function guarded(fn) {
+        return async (...args) => {
+          if (busy) return;
+          busy = true;
+          error = "";
+          render();
+          try {
+            await fn(...args);
+          } catch (e) {
+            console.error(e);
+            error = String((e && e.message) || e);
+          } finally {
+            busy = false;
+            render();
+          }
+        };
+      }
+
+      // ------------------------------------------------------------- game acts
+
+      const join = guarded(async (name) => {
+        const clean = name
+          .replace(/[\u0000-\u001F\u007F-\u009F\u2000-\u200F\u2028-\u202F]/g, "")
+          .trim();
+        if (!clean) {
+          me = null;
+          joined = true;
+          return;
+        }
+        let p = (db.Players || []).find(
+          (x) => (x.Name || "").toLowerCase() === clean.toLowerCase()
+        );
+        if (!p) {
+          const seats = players().map((x) => x.Seat || 0);
+          const seat = (seats.length ? Math.max(...seats) : 0) + 1;
+          const res = await grist.docApi.applyUserActions([
+            ["AddRecord", "Players", null, { Name: clean, Seat: seat }],
+          ]);
+          const id = res.retValues[0];
+          await refresh();
+          p = player(id);
+          // Someone who joins mid-round still needs a slot to write a clue in.
+          const r = currentRound();
+          if (r && r.Phase === "clue") {
+            await apply([
+              ["AddRecord", "Clues", null,
+               { Round: r.id, Player: id, Clue: "", Override: false }],
+            ]);
+          }
+        }
+        me = { id: p.id, name: p.Name };
+        joined = true;
+        draft = "";
+        localStorage.setItem("justone:" + docKey, JSON.stringify(me));
+      });
+
+      function leave() {
+        me = null;
+        joined = false;
+        draft = "";
+        localStorage.removeItem("justone:" + docKey);
+        render();
+      }
+
+      const startRound = guarded(async () => {
+        const ps = players();
+        if (ps.length < 2) {
+          error = "you need at least two players to start a round.";
+          return;
+        }
+        const cur = currentRound();
+        let guesser;
+        if (cur && cur.Guesser && ps.some((p) => p.id === cur.Guesser)) {
+          const i = ps.findIndex((p) => p.id === cur.Guesser);
+          guesser = ps[(i + 1) % ps.length].id;
+        } else {
+          guesser = ps[0].id;
+        }
+
+        const g = game();
+        const list = g.WordList || "easy";
+        const inList = (w) => list === "all" || w.List === list;
+        let pool = (db.Words || []).filter((w) => !w.Used && inList(w));
+        const pre = [];
+        if (!pool.length) {
+          const all = (db.Words || []).filter(inList);
+          if (!all.length) {
+            error = 'no words in the "' + list + '" list.';
+            return;
+          }
+          // Every word has been played; recycle the whole list.
+          pre.push(["BulkUpdateRecord", "Words", all.map((w) => w.id),
+                    { Used: all.map(() => false) }]);
+          pool = all;
+        }
+        const word = pool[Math.floor(Math.random() * pool.length)];
+        const nums = rounds().map((r) => r.Num || 0);
+        const num = (nums.length ? Math.max(...nums) : 0) + 1;
+
+        const res = await grist.docApi.applyUserActions([
+          ...pre,
+          ["AddRecord", "Rounds", null,
+           { Num: num, Guesser: guesser, Word: word.Word, Guess: "",
+             Judgment: "", Phase: "clue" }],
+          ["UpdateRecord", "Words", word.id, { Used: true }],
+        ]);
+        const roundId = res.retValues[pre.length];
+
+        await apply([
+          ["BulkAddRecord", "Clues", ps.map(() => null), {
+            Round: ps.map(() => roundId),
+            Player: ps.map((p) => p.id),
+            Clue: ps.map(() => ""),
+            Override: ps.map(() => false),
+          }],
+          ["UpdateRecord", "Game", g.id, { CurrentRound: roundId }],
+        ]);
+        draft = "";
+      });
+
+      const submitClue = guarded(async (text) => {
+        const r = currentRound();
+        if (!r || r.Phase !== "clue" || !me) return;
+        const mine = cluesFor(r.id).find((c) => c.Player === me.id);
+        const value = text.trim() || " ";
+        if (mine) {
+          await apply([["UpdateRecord", "Clues", mine.id, { Clue: value }]]);
+        } else {
+          await apply([["AddRecord", "Clues", null,
+                        { Round: r.id, Player: me.id, Clue: value,
+                          Override: false }]]);
+        }
+        draft = "";
+        // Once every non-guesser has written something, move the room along.
+        const waiting = cluesFor(r.id).filter(
+          (c) => c.Player !== r.Guesser && !submitted(c)
+        );
+        const others = players().filter((p) => p.id !== r.Guesser);
+        if (!waiting.length && others.length) {
+          await apply([["UpdateRecord", "Rounds", r.id, { Phase: "eliminate" }]]);
+        }
+      });
+
+      const toggleClue = guarded(async (clueId) => {
+        const c = (db.Clues || []).find((x) => x.id === clueId);
+        if (!c) return;
+        await apply([["UpdateRecord", "Clues", clueId,
+                      { Override: !c.Override }]]);
+      });
+
+      const setPhase = guarded(async (p) => {
+        const r = currentRound();
+        if (!r) return;
+        // Going (back) to "guess" clears any earlier verdict, so a second
+        // attempt is scored on its own merits rather than the first one's.
+        const fields = p === "guess"
+          ? { Phase: p, Guess: "", Judgment: "" }
+          : { Phase: p };
+        await apply([["UpdateRecord", "Rounds", r.id, fields]]);
+        draft = "";
+      });
+
+      const submitGuess = guarded(async (text) => {
+        const r = currentRound();
+        if (!r || r.Phase !== "guess") return;
+        const guess = text.trim();
+        const right = equivalent(guess, r.Word);
+        await apply([["UpdateRecord", "Rounds", r.id, {
+          Guess: guess,
+          Phase: right ? "end" : "judge",
+          Judgment: right ? "correct" : "",
+        }]]);
+        draft = "";
+      });
+
+      const judge = guarded(async (correct) => {
+        const r = currentRound();
+        if (!r || r.Phase !== "judge") return;
+        await apply([["UpdateRecord", "Rounds", r.id, {
+          Judgment: correct ? "correct" : "wrong",
+          Phase: "end",
+        }]]);
+      });
+
+      const kick = guarded(async (pid) => {
+        const r = currentRound();
+        const theirClues = (db.Clues || [])
+          .filter((c) => c.Player === pid)
+          .map((c) => c.id);
+        const acts = [];
+        if (theirClues.length) {
+          acts.push(["BulkRemoveRecord", "Clues", theirClues]);
+        }
+        acts.push(["RemoveRecord", "Players", pid]);
+        await apply(acts);
+        if (me && me.id === pid) {
+          leave();
+          return;
+        }
+        // The guesser walking out leaves the round unplayable; deal a new one.
+        if (r && r.Guesser === pid && r.Phase !== "end" && players().length >= 2) {
+          await startRound();
+        }
+      });
+
+      const setSetting = guarded(async (col, value) => {
+        const g = game();
+        if (!g) return;
+        await apply([["UpdateRecord", "Game", g.id, { [col]: value }]]);
+      });
+
+      // ------------------------------------------------------------ rendering
+
+      function renderSplash() {
+        const seats = players();
+        return `
+          <div class="splash">
+            <h1>just one</h1>
+            <div class="tag">
+              a cooperative word game, played inside a Grist document.
+            </div>
+            <div>
+              <input id="nameInput" placeholder="your name"
+                     value="${esc(draft)}" autofocus />
+              <button data-act="join">join</button>
+              <button class="gray" data-act="spectate">spectate</button>
+            </div>
+            ${seats.length ? `
+              <div class="seats">
+                <div class="lbl">already at the table - tap your name to take
+                  your seat back:</div>
+                ${seats.map((p) => `
+                  <button class="small gray" data-act="reclaim"
+                          data-name="${esc(p.Name)}">${esc(p.Name)}</button>
+                `).join("")}
+              </div>` : ""}
+            <div class="note">
+              Everything below the surface is ordinary Grist: players, rounds and
+              clues are rows you can open in the Data tab, the duplicate-clue rule
+              is a Python formula, and the live updates every player sees are the
+              document syncing itself. Ported from
+              <a href="https://github.com/cjquines/just-one">cjquines/just-one</a>.
+            </div>
+          </div>`;
+      }
+
+      function renderStatus() {
+        const p = phase();
+        const r = currentRound();
+        if (p === "wait") return `<div class="status">waiting for players...</div>`;
+        if (amGuessing()) {
+          return `<div class="status">you are guessing!</div>`;
+        }
+        return `<div class="status">${esc(playerName(r.Guesser))}&rsquo;s word is
+          <b class="word">${esc(r.Word)}</b>.</div>`;
+      }
+
+      function renderAction() {
+        const p = phase();
+        const r = currentRound();
+        const active = amGuessing();
+        const spec = spectating();
+        let msg = "";
+        let input = "";
+        let buttons = "";
+
+        if (p === "wait") {
+          msg = spec
+            ? "waiting for a player to start the game..."
+            : "everyone in? deal the first word.";
+          if (!spec) buttons += `<button data-act="start">start game</button>`;
+        } else if (p === "clue") {
+          const mine = me ? cluesFor(r.id).find((c) => c.Player === me.id) : null;
+          if (active || spec) {
+            msg = "waiting for clues...";
+          } else if (mine && submitted(mine)) {
+            msg = `you wrote <b>${esc(mine.Clue)}</b>. waiting for others...`;
+          } else {
+            msg = "write a one-word clue!";
+            input = "clue";
+          }
+        } else if (p === "eliminate") {
+          if (active || spec) {
+            msg = "the group is comparing clues...";
+          } else {
+            msg = `duplicate clues are struck out automatically. hide anything
+                   else that is invalid, then hand the clues over.`;
+            buttons += `<button data-act="phase" data-phase="guess">show clues</button>`;
+          }
+        } else if (p === "guess") {
+          if (active) {
+            msg = "guess the word!";
+            input = "guess";
+          } else {
+            msg = `${esc(playerName(r.Guesser))} is guessing...`;
+          }
+        } else if (p === "judge") {
+          if (active) {
+            msg = `you wrote <b>${esc(r.Guess)}</b>. waiting for judgment...`;
+          } else if (spec) {
+            msg = `${esc(playerName(r.Guesser))} guessed <b>${esc(r.Guess)}</b>.`;
+          } else {
+            msg = `${esc(playerName(r.Guesser))} guessed <b>${esc(r.Guess)}</b>.
+                   is it right?`;
+            buttons += `<button data-act="judge" data-ok="1">yep</button>`;
+            buttons += `<button class="gray" data-act="judge" data-ok="">nope</button>`;
+          }
+        } else if (p === "end") {
+          const right = r.Judgment === "correct";
+          const verdict = right
+            ? `<span class="correct">right!</span>`
+            : `<span class="wrong">wrong :(</span>`;
+          msg = active
+            ? `your guess, <b>${esc(r.Guess)}</b>, was ${verdict}`
+            : `${esc(playerName(r.Guesser))}&rsquo;s guess,
+               <b>${esc(r.Guess)}</b>, was ${verdict}`;
+          if (active && !right) {
+            buttons += `<button data-act="phase" data-phase="guess">guess again</button>`;
+          }
+          if (!spec) buttons += `<button data-act="start">next round</button>`;
+        }
+
+        const box = input
+          ? `<div>
+               <input id="mainInput" placeholder="${input}" value="${esc(draft)}"
+                      autocomplete="off" />
+               <button data-act="send" data-kind="${input}">send</button>
+             </div>`
+          : "";
+
+        return `
+          <div class="action">
+            <div class="msg">${msg}</div>
+            ${box}
+            ${buttons ? `<div>${buttons}</div>` : ""}
+          </div>`;
+      }
+
+      function renderSubaction() {
+        const g = game();
+        const p = phase();
+        const parts = [];
+        if (p !== "wait") {
+          parts.push(`<span><span class="correct">${g.Correct} correct</span> &middot;
+            <span class="wrong">${g.Wrong} wrong</span></span>`);
+        }
+        parts.push(`<span class="spacer"></span>`);
+        if (!spectating() && p !== "wait" && p !== "end") {
+          parts.push(`<button class="small gray" data-act="start">skip round</button>`);
+        }
+        return `<div class="subaction">${parts.join("")}</div>`;
+      }
+
+      // How a single player's clue reads on *this* browser, given who is
+      // looking. The guesser's screen is the one that has to hold things back.
+      function clueCell(c, round, isCurrent) {
+        const p = isCurrent ? phase() : "end";
+        const active = isCurrent
+          ? amGuessing()
+          : false;
+        const isGuesser = c.Player === round.Guesser;
+        if (isGuesser) {
+          return `<span class="clue-text guessing">guesser</span>`;
+        }
+
+        let text = "";
+        let cls = "clue-text";
+        if (p === "clue") {
+          text = submitted(c) ? "submitted" : "writing...";
+          cls += submitted(c) ? " pending" : " pending";
+        } else if (p === "eliminate" && active) {
+          text = submitted(c) ? "submitted" : "no clue";
+          cls += submitted(c) ? " pending" : " none";
+        } else if (active) {
+          // The guesser only ever sees clues that survived elimination.
+          if (!c.Visible) {
+            text = "hidden";
+            cls += " masked";
+          } else if (!submitted(c) || (c.Clue || "").trim() === "") {
+            text = "no clue";
+            cls += " none";
+          } else {
+            text = c.Clue;
+          }
+        } else {
+          if (!submitted(c) || (c.Clue || "").trim() === "") {
+            text = "no clue";
+            cls += " none";
+          } else {
+            text = c.Clue;
+            if (!c.Visible) cls += " struck";
+          }
+        }
+        return `<span class="${cls}">${esc(text)}</span>`;
+      }
+
+      function renderPlayers(round, isCurrent) {
+        const p = isCurrent ? phase() : "end";
+        const active = isCurrent ? amGuessing() : false;
+        const spec = spectating();
+        const clues = cluesFor(round.id);
+        // Past rounds keep the seating they were played with.
+        const seated = clues.length
+          ? clues
+              .map((c) => ({ clue: c, p: player(c.Player) }))
+              .filter((x) => x.p)
+              .sort((a, b) => (a.p.Seat || 0) - (b.p.Seat || 0))
+          : players().map((p) => ({ clue: null, p }));
+
+        const rows = seated.map(({ clue, p: pl }) => {
+          const kick = isCurrent && !spec
+            ? `<button class="small gray" data-act="kick" data-id="${pl.id}"
+                 >kick</button> `
+            : "";
+          const isMe = me && me.id === pl.id;
+          const name = `<span class="name${isMe ? " me" : ""}">${esc(pl.Name)}</span>`;
+          if (!clue) {
+            return `<tr><td class="who">${kick}${name}</td><td class="clue"></td></tr>`;
+          }
+          // The hide/show toggle belongs to the people comparing clues, not to
+          // the guesser and not to spectators.
+          const canToggle =
+            isCurrent && !spec && !active && p !== "clue" &&
+            submitted(clue) && clue.Player !== round.Guesser;
+          const toggle = canToggle
+            ? ` <button class="small gray" data-act="toggle" data-id="${clue.id}"
+                 >${clue.Visible ? "hide" : "show"}</button>`
+            : "";
+          return `<tr>
+            <td class="who">${kick}${name}</td>
+            <td class="clue">${clueCell(clue, round, isCurrent)}${toggle}</td>
+          </tr>`;
+        });
+
+        return `<table class="players"><tbody>${rows.join("")}</tbody></table>`;
+      }
+
+      function renderRound(round, isCurrent) {
+        // The guesser is not shown the word for as long as the round is the
+        // live one - including after a wrong verdict, since they may still
+        // choose to guess again. It is revealed once the next round is dealt.
+        const hideWord = isCurrent && amGuessing();
+        const word = hideWord ? "?" : round.Word;
+        const guess = round.Guess
+          ? ` &middot; guess: <b>${esc(round.Guess)}</b>`
+          : "";
+        const verdict =
+          round.Judgment === "correct"
+            ? ` <span class="correct">(correct)</span>`
+            : round.Judgment === "wrong"
+            ? ` <span class="wrong">(wrong)</span>`
+            : "";
+        return `
+          <div class="round-status${isCurrent ? "" : " old"}">
+            round ${round.Num}: <b>${esc(playerName(round.Guesser))}</b>
+            &middot; word: <b>${esc(word)}</b>${guess}${verdict}
+          </div>
+          ${renderPlayers(round, isCurrent)}`;
+      }
+
+      function renderSettings() {
+        const g = game();
+        if (!g) return "";
+        const opt = (v, cur) =>
+          `<option value="${v}"${v === cur ? " selected" : ""}>${v}</option>`;
+        return `
+          <div class="settings">
+            <label>words</label>
+            <select data-act="set" data-col="WordList">
+              ${["easy", "medium", "hard", "all"]
+                .map((v) => opt(v, g.WordList || "easy")).join("")}
+            </select>
+            <label style="margin-left:0.8em">elimination</label>
+            <select data-act="set" data-col="Mode">
+              ${["one", "two", "schelling"]
+                .map((v) => opt(v, g.Mode || "one")).join("")}
+            </select>
+          </div>`;
+      }
+
+      function renderRules() {
+        return `
+          <div class="rules">
+            <p>just one is a <b>cooperative game</b>. everyone writes
+              <b>one-word clues</b> to help a guesser guess their mystery word.
+              the catch: the guesser cannot be shown a clue that two or more
+              people wrote.</p>
+            <p>in each round:</p>
+            <ol>
+              <li>without communicating, everyone writes a one-word clue.
+                <p class="exp"><span class="correct">valid:</span> proper nouns,
+                  numbers, acronyms, onomatopoeia.</p>
+                <p class="exp"><span class="wrong">invalid:</span> translations
+                  or homophones of the word, invented words.</p>
+              </li>
+              <li>everyone compares clues.
+                <p class="exp">clues that collide are struck out for you, by a
+                  Python formula in the document. use <b>hide</b> and
+                  <b>show</b> to overrule it, then tap <b>show clues</b>.</p>
+              </li>
+              <li>the guesser guesses the word.
+                <p class="exp">after guessing, the guesser can
+                  <b>guess again</b>. anyone can start the
+                  <b>next round</b>.</p>
+              </li>
+              <li>keep playing for as long as you want.</li>
+            </ol>
+            <p>rejoining with the same name puts you back in your seat. if
+              someone leaves for real, <b>kick</b> them. join without a name to
+              spectate.</p>
+            <p><b>elimination modes.</b> <i>one</i> is the real game: a clue
+              given more than once is struck. <i>two</i> keeps only clues given
+              exactly twice. <i>schelling</i> keeps only the single most popular
+              clue.</p>
+            <div><button data-act="rules">close rules</button></div>
+          </div>`;
+      }
+
+      function render() {
+        const app = document.getElementById("app");
+        if (!db.Game) {
+          app.innerHTML = `<div class="note">loading...</div>`;
+          return;
+        }
+
+        if (!joined) {
+          app.innerHTML = renderSplash();
+          wire();
+          return;
+        }
+
+        const me_ = me ? esc(me.name) : "spectating";
+        const rs = rounds().slice().reverse();
+        const cur = currentRound();
+
+        app.innerHTML = `
+          <div class="nav">
+            <h1>just one</h1>
+            <span class="room">${me_}</span>
+            <button class="link small" data-act="rules">rules</button>
+            <button class="link small" data-act="leave">leave</button>
+          </div>
+          ${error ? `<div class="err">${esc(error)}</div>` : ""}
+          ${showRules ? renderRules() : ""}
+          ${renderStatus()}
+          ${renderAction()}
+          ${renderSubaction()}
+          ${phase() === "wait" ? renderSettings() : ""}
+          ${phase() === "wait"
+            ? renderPlayers({ id: 0, Guesser: 0, Num: 0 }, true)
+            : rs.map((r) => renderRound(r, Boolean(cur) && r.id === cur.id)).join("")}
+          <div class="note">
+            The word is kept off the guesser&rsquo;s screen by this widget, not by
+            the database - anyone can still open the Rounds table and read it.
+            That matches the original, which trusts players to police themselves.
+            Grist access rules could make it genuine.
+          </div>`;
+        wire();
+      }
+
+      // Re-rendering blows away the DOM, so listeners are re-attached each time
+      // and the in-progress text box is restored from `draft`.
+      function wire() {
+        const app = document.getElementById("app");
+
+        const input = app.querySelector("#mainInput") || app.querySelector("#nameInput");
+        if (input) {
+          input.value = draft;
+          input.oninput = (e) => { draft = e.target.value; };
+          input.onkeydown = (e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            if (input.id === "nameInput") join(draft);
+            else if (input.placeholder === "clue") submitClue(draft);
+            else submitGuess(draft);
+          };
+          if (document.activeElement !== input) {
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+          }
+        }
+
+        app.querySelectorAll("[data-act]").forEach((el) => {
+          const act = el.dataset.act;
+          if (el.tagName === "SELECT") {
+            el.onchange = () => setSetting(el.dataset.col, el.value);
+            return;
+          }
+          el.onclick = () => {
+            if (act === "join") join(draft);
+            else if (act === "spectate") { draft = ""; join(""); }
+            else if (act === "reclaim") { draft = el.dataset.name; join(draft); }
+            else if (act === "leave") leave();
+            else if (act === "rules") { showRules = !showRules; render(); }
+            else if (act === "start") startRound();
+            else if (act === "phase") setPhase(el.dataset.phase);
+            else if (act === "judge") judge(Boolean(el.dataset.ok));
+            else if (act === "toggle") toggleClue(Number(el.dataset.id));
+            else if (act === "kick") kick(Number(el.dataset.id));
+            else if (act === "send") {
+              if (el.dataset.kind === "clue") submitClue(draft);
+              else submitGuess(draft);
+            }
+          };
+        });
+      }
+
+      // ----------------------------------------------------------------- boot
+
+      grist.ready({ requiredAccess: "full" });
+
+      (async () => {
+        try {
+          docKey = await grist.docApi.getDocName();
+        } catch (e) {
+          /* falls back to "default" - only used to namespace localStorage */
+        }
+        try {
+          const saved = JSON.parse(localStorage.getItem("justone:" + docKey));
+          if (saved && saved.id) { me = saved; joined = true; }
+        } catch (e) { /* no saved seat */ }
+
+        await refresh();
+
+        // Game holds a Pulse formula that digests every other table, so a change
+        // anywhere in the document lands here as a change to this widget's own
+        // table. That is what replaces the original's socket.io server.
+        grist.onRecords(() => refresh().catch(console.error));
+
+        // Belt and braces, in case a doc action is ever missed.
+        setInterval(() => refresh().catch(console.error), 5000);
+      })().catch((e) => {
+        document.getElementById("app").innerHTML =
+          `<div class="err">${esc(e && e.message || e)}</div>
+           <div class="note">This widget needs <b>Full document access</b>.
+           Open the widget's settings in the right-hand panel and set Access to
+           "Full document access".</div>`;
+      });
+    </script>
+  </body>
+</html>
