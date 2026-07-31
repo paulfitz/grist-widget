@@ -865,6 +865,13 @@
           app.innerHTML = `<div class="note">loading...</div>`;
           return;
         }
+        if (!db.Game.length) {
+          app.innerHTML = `<div class="err">The Game table has no rows.</div>
+            <div class="note">This widget keeps the room's settings and the
+            pointer to the current round in a single row of the
+            <b>Game</b> table. Add one row there to start again.</div>`;
+          return;
+        }
 
         if (!joined) {
           app.innerHTML = renderSplash();
