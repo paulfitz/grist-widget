@@ -913,10 +913,10 @@
           <div class="nav">
             <h1>just one</h1>
             <span class="room">${me_}</span>
-            <button class="link small" data-act="rules">rules</button>
+            <button class="small gray" data-act="rules">rules</button>
             ${spectating() ? "" :
-              `<button class="link small" data-act="reset">new game</button>`}
-            <button class="link small" data-act="leave">leave</button>
+              `<button class="small gray" data-act="reset">new game</button>`}
+            <button class="small gray" data-act="leave">leave</button>
           </div>
           ${error ? `<div class="err">${esc(error)}</div>` : ""}
           ${showRules ? renderRules() : ""}
