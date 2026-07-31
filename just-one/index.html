@@ -600,6 +600,7 @@
 
       function renderSplash() {
         const seats = players();
+        const hasRounds = (db.Rounds || []).length > 0;
         return `
           <div class="splash">
             <h1>just one</h1>
@@ -621,6 +622,17 @@
                           data-name="${esc(p.Name)}">${esc(p.Name)}</button>
                 `).join("")}
               </div>` : ""}
+            <div class="seats">
+              <div class="lbl">
+                ${seats.length || hasRounds ? "starting over?" : ""}
+              </div>
+              ${hasRounds ? `<button class="small gray"
+                data-act="reset">new game</button>` : ""}
+              ${seats.length ? `<button class="small gray"
+                data-act="clear">empty table</button>` : ""}
+              <button class="small gray" data-act="rules">rules</button>
+            </div>
+            ${showRules ? renderRules() : ""}
             <div class="note">
               Everything below the surface is ordinary Grist: players, rounds and
               clues are rows you can open in the Data tab, the duplicate-clue rule
