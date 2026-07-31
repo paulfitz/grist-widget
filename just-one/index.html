@@ -402,6 +402,7 @@
         joined = false;
         draft = "";
         localStorage.removeItem("justone:" + docKey);
+        localStorage.removeItem("justone:default");
         render();
       }
 
@@ -546,22 +547,21 @@
         }
       });
 
-      // Clears the history but leaves everyone in their seat, which is what you
-      // want between two sessions at the same table. Clues go before Rounds,
-      // since they point at them.
-      const resetGame = guarded(async () => {
-        const ok = window.confirm(
-          "Start a new game?\n\nEvery round, clue and score is cleared, and the " +
-          "word list is made fresh again. Players keep their seats."
-        );
-        if (!ok) return;
+      // Clears the history. Rows are removed child-first, since Clues point at
+      // both Rounds and Players. `alsoPlayers` additionally empties the table,
+      // which sends every browser back to the name screen.
+      async function wipe(alsoPlayers) {
         const g = game();
         const clueIds = (db.Clues || []).map((c) => c.id);
         const roundIds = (db.Rounds || []).map((r) => r.id);
         const usedIds = (db.Words || []).filter((w) => w.Used).map((w) => w.id);
+        const playerIds = (db.Players || []).map((p) => p.id);
         const acts = [];
         if (clueIds.length) acts.push(["BulkRemoveRecord", "Clues", clueIds]);
         if (roundIds.length) acts.push(["BulkRemoveRecord", "Rounds", roundIds]);
+        if (alsoPlayers && playerIds.length) {
+          acts.push(["BulkRemoveRecord", "Players", playerIds]);
+        }
         if (usedIds.length) {
           acts.push(["BulkUpdateRecord", "Words", usedIds,
                      { Used: usedIds.map(() => false) }]);
@@ -570,6 +570,24 @@
         await apply(acts);
         draft = "";
         showRules = false;
+      }
+
+      const resetGame = guarded(async () => {
+        const ok = window.confirm(
+          "Start a new game?\n\nEvery round, clue and score is cleared, and the " +
+          "word list is made fresh again. Players keep their seats."
+        );
+        if (ok) await wipe(false);
+      });
+
+      const clearTable = guarded(async () => {
+        const ok = window.confirm(
+          "Empty the table?\n\nEveryone is removed along with the rounds and " +
+          "scores, and each player types their name again to sit back down."
+        );
+        if (!ok) return;
+        await wipe(true);
+        leave();
       });
 
       const setSetting = guarded(async (col, value) => {
@@ -914,9 +932,11 @@
             <h1>just one</h1>
             <span class="room">${me_}</span>
             <button class="small gray" data-act="rules">rules</button>
-            ${spectating() ? "" :
-              `<button class="small gray" data-act="reset">new game</button>`}
-            <button class="small gray" data-act="leave">leave</button>
+            ${spectating()
+              ? `<button class="small" data-act="leave">take a seat</button>`
+              : `<button class="small gray" data-act="reset">new game</button>
+                 <button class="small gray" data-act="clear">empty table</button>
+                 <button class="small gray" data-act="leave">leave</button>`}
           </div>
           ${error ? `<div class="err">${esc(error)}</div>` : ""}
           ${showRules ? renderRules() : ""}
@@ -971,6 +991,7 @@
             else if (act === "leave") leave();
             else if (act === "rules") { showRules = !showRules; render(); }
             else if (act === "reset") resetGame();
+            else if (act === "clear") clearTable();
             else if (act === "start") startRound();
             else if (act === "phase") setPhase(el.dataset.phase);
             else if (act === "judge") judge(Boolean(el.dataset.ok));
@@ -995,8 +1016,18 @@
           /* falls back to "default" - only used to namespace localStorage */
         }
         try {
-          const saved = JSON.parse(localStorage.getItem("justone:" + docKey));
-          if (saved && saved.id) { me = saved; joined = true; }
+          // Before the widget was granted data access, getDocName() failed and
+          // seats were saved under the "default" key. Adopt one of those if the
+          // properly-keyed slot is empty, so an early session is not orphaned
+          // into spectating.
+          const raw = localStorage.getItem("justone:" + docKey) ||
+                      localStorage.getItem("justone:default");
+          const saved = JSON.parse(raw);
+          if (saved && saved.id) {
+            me = saved;
+            joined = true;
+            localStorage.setItem("justone:" + docKey, raw);
+          }
         } catch (e) { /* no saved seat */ }
 
         await refresh();
